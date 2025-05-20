@@ -1,0 +1,22 @@
+userName: xxx
+accessKey: xxxx
+projectName: Praject Name ABCD Ontrac umarked issue
+buildName: browserstack build umarked issue
+buildIdentifier: '#${BUILD_NUMBER}'
+framework: pytest
+parallelsPerPlatform: 2
+browserstackLocal: false
+source: pytest-appium-browserstack:sample-sdk:v1.0
+debug: false
+idleTimeout: 300
+networkLogs: false
+consoleLogs: info
+app: bs://9849f9bba1a4195d95994186970bc478319bc88a
+autoGrantPermissions: true
+gpsLocation: -73.935242,40.730610
+percy: false
+platforms:
+  - platformName: android
+    platformVersion: "14.0"
+    deviceName: Samsung Galaxy S24
+

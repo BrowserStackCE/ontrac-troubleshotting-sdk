@@ -1,0 +1,74 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger: none
+name: $(date:yyyyMMdd)_$(SourceBranchName)
+jobs:
+- job: android_regression_from_android_repo
+  displayName: Build and Test
+  timeoutInMinutes: 600 # how long to run the job before automatically cancelling
+  cancelTimeoutInMinutes: 2 # how much time to give 'run always even if cancelled tasks' before stopping them
+  condition: succeededOrFailed()
+  pool:
+    name: 'Agent Name'
+    demands:
+      - agent.name -equals xxxxxxxx
+  steps:
+  - checkout: self
+    fetchDepth: 1
+    persistCredentials: True
+  - task: NodeTool@0
+    inputs:
+      versionSource: 'spec'
+      versionSpec: '18.x'
+      checkLatest: true
+  - task: CmdLine@2
+    inputs:
+     script: |
+        npm -v
+        npm install -g allure-commandline
+        allure --version
+  - script: |
+       pip install --upgrade setuptools virtualenv wheel
+    displayName: "install virtualenv wheel"
+  - script: |
+       mkdir $(System.DefaultWorkingDirectory)\venv
+       python -m virtualenv $(System.DefaultWorkingDirectory)\venv
+       python -m pip install --upgrade pip
+       set Path=$(System.DefaultWorkingDirectory)\venv\Scripts;%Path%
+       echo "We're in a virtual environment!"
+       pip install virtualenv
+       virtualenv --clear .venv
+       echo "cleared .venv"
+       pip install -r ./requirements.txt
+    displayName: 'Install dependencies'
+  - script: |
+       python -m virtualenv $(System.DefaultWorkingDirectory)\venv
+       echo "We're in a virtual environment!"
+       call $(System.DefaultWorkingDirectory)\venv\Scripts\activate.bat
+       python browserstack_yml_update.py android
+       echo %cd%
+    displayName: 'Update browserstack yml pipeline variables'
+  - script: |
+       python -m virtualenv $(System.DefaultWorkingDirectory)\venv
+       echo "We're in a virtual environment!"
+       call $(System.DefaultWorkingDirectory)\venv\Scripts\activate.bat
+       python browserstack_yml_update.py android
+       browserstack-sdk pytest --use-browserstack .\Testcases -n 5 --dist loadgroup -m android --junitxml=test-results.xml || exit 0
+       echo %cd%
+    displayName: 'Execute Tests'
+  - task: PublishTestResults@2
+    inputs:
+     testResultsFormat: 'JUnit'
+     testResultsFiles: '**/test-results.xml'
+     testRunTitle: 'Python Tests'
+    condition: succeededOrFailed()
+  - task: PublishPipelineArtifact@1
+    displayName: Publish Test Results JReports
+    inputs:
+      targetPath: '$(System.DefaultWorkingDirectory)/reports'
+      artifact: 'pytest_report'
+      publishLocation: 'pipeline'
+
